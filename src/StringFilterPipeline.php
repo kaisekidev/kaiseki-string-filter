@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kaiseki\StringFilter;
 
-final class MultipleStringFilter implements StringFilterInterface
+final class StringFilterPipeline implements StringFilterInterface
 {
     /** @var StringFilterInterface[] */
     private array $filter;
