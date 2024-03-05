@@ -7,6 +7,8 @@ namespace Kaiseki\StringFilter;
 use InvalidArgumentException;
 
 use function count;
+use function is_string;
+use function preg_replace;
 
 final class PregReplaceStringFilter implements StringFilterInterface
 {
@@ -23,6 +25,8 @@ final class PregReplaceStringFilter implements StringFilterInterface
 
     public function __invoke(string $string): string
     {
-        return \Safe\preg_replace($this->pattern, $this->replacement, $string);
+        $value = preg_replace($this->pattern, $this->replacement, $string);
+
+        return is_string($value) ? $value : $string;
     }
 }

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Kaiseki\StringFilter;
 
-use function Safe\preg_replace;
+use function is_string;
+use function preg_replace;
 
 final class RemoveDoubleCurlyBracketsStringFilter implements StringFilterInterface
 {
@@ -13,6 +14,8 @@ final class RemoveDoubleCurlyBracketsStringFilter implements StringFilterInterfa
         $pattern = "/\{\{([^}]+)\}\}/";
         $replace = "$1";
 
-        return preg_replace($pattern, $replace, $string);
+        $value = preg_replace($pattern, $replace, $string);
+
+        return is_string($value) ? $value : $string;
     }
 }

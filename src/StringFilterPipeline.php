@@ -19,6 +19,7 @@ final class StringFilterPipeline implements StringFilterInterface
         foreach ($this->filter as $filter) {
             $string = ($filter)($string);
         }
+
         return $string;
     }
 }
