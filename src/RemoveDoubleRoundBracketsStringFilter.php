@@ -12,7 +12,7 @@ final class RemoveDoubleRoundBracketsStringFilter implements StringFilterInterfa
     public function __invoke(string $string): string
     {
         $pattern = "/\(\(([^)]+)\)\)/";
-        $replace = "$1";
+        $replace = '$1';
 
         $value = preg_replace($pattern, $replace, $string);
 

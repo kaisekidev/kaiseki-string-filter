@@ -11,8 +11,8 @@ final class RemoveDanglingColon implements StringFilterInterface
 {
     public function __invoke(string $string): string
     {
-        $pattern = "/:$/";
-        $replace = "$1";
+        $pattern = '/:$/';
+        $replace = '$1';
 
         $value = preg_replace($pattern, $replace, $string);
 
