@@ -13,10 +13,6 @@ updates:
         dependency-type: development
         patterns:
           - "*"
-    ignore:
-      # respect/validation 3.x requires PHP 8.5 — hold at ^2.x while we target 8.4.
-      - dependency-name: "respect/validation"
-        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
