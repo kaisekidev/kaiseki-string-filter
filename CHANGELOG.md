@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file, in reverse chronological order by release.
 
+## 1.0.1 - 2026-05-30
+
+### What's Changed
+
+* ci: add automated changelog workflow by @wolfgangschaefer in https://github.com/kaisekidev/kaiseki-string-filter/pull/2
+
+**Full Changelog**: https://github.com/kaisekidev/kaiseki-string-filter/compare/1.0.0...1.0.1
+
 ## 1.0.0 - 2026-05-29
 
 First tagged release.
