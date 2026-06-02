@@ -7,23 +7,32 @@
 # no bypass) — no plan upgrade needed.
 #
 # Workflow to cut a release (no manual changelog editing):
-#   gh release create vX.Y.Z --generate-notes --target master
+#   gh release create X.Y.Z --generate-notes --title X.Y.Z --target master
+# Tags are bare semver (no `v` prefix); the explicit --title keeps the release
+# name in sync with the tag so the changelog heading is `## X.Y.Z`, not `## vX.Y.Z`.
 # GitHub builds the "What's Changed" notes from merged PR titles; this then
 # writes them into CHANGELOG.md under `## X.Y.Z - <date>` and opens the PR.
 #
-# ── PREREQUISITES (one-time, per repo or org) ──────────────────────────────
-# 1. Settings → Actions → General → "Allow GitHub Actions to create and approve
-#    pull requests" must be ON, or create-pull-request fails.
-# 2. "Allow auto-merge" must be enabled on the repo for the PR to land hands-off
-#    (Settings → General, or `gh repo edit <repo> --enable-auto-merge`). If it's
-#    off, the PR is still opened — just merge it manually (one click).
-# 3. On repos with required CI status checks: a PR opened by the default
-#    GITHUB_TOKEN does NOT trigger other workflows, so `checks / build (8.x)`
-#    never runs and auto-merge would wait forever. Provide a token that can
-#    trigger CI — set repo/org secret `CHANGELOG_TOKEN` to a fine-grained PAT
-#    (contents + pull-requests: write) or a GitHub App token. Without it the PR
-#    is opened but must be merged manually on CI-protected repos. Repos without
-#    required checks auto-merge fine on the default token.
+# ── HOW IT AUTHENTICATES ────────────────────────────────────────────────────
+# The org forbids the Actions GITHUB_TOKEN from opening PRs, so this mints a
+# short-lived token from the org's `kaiseki-doc-bot` GitHub App instead of a
+# per-repo PAT. The App token also makes the PR trigger checks.yml, so the
+# required `checks / build (8.x)` run and auto-merge can complete. The token is
+# generated fresh each run and expires shortly after, so there is no per-repo
+# secret to manage — the only stored credential is the org-level App private key
+# (`APP_PRIVATE_KEY`), shared by every repo.
+#
+# ── PREREQUISITES (one-time, org-wide) ──────────────────────────────────────
+# 1. The `kaiseki-doc-bot` App (contents + pull-requests: write) must have access
+#    to the repo. In org Settings → GitHub Apps → kaiseki-doc-bot → Configure,
+#    set "Repository access" to All repositories (recommended) or add the repo.
+# 2. The `APP_ID` and `APP_PRIVATE_KEY` org secrets must be readable by the repo.
+#    Set their "Repository access" to All repositories (recommended), or add the
+#    repo: `gh api -X PUT /orgs/kaisekidev/actions/secrets/APP_ID/repositories/<id>`
+#    (same for APP_PRIVATE_KEY).
+# 3. "Allow auto-merge" must be enabled on the repo for the PR to land hands-off
+#    (`gh repo edit <repo> --enable-auto-merge`). If off, the PR is still opened
+#    — just merge it manually (one click).
 #    See docs/governance/repo-defaults.md.
 
 name: Update Changelog
@@ -32,16 +41,23 @@ on:
   release:
     types: [released]
 
+# The App token does the writing; the workflow's own GITHUB_TOKEN only reads.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
+      - name: Generate a token from the kaiseki-doc-bot app
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: master
 
@@ -53,9 +69,9 @@ jobs:
 
       - name: Open changelog PR
         id: cpr
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.CHANGELOG_TOKEN || github.token }}
+          token: ${{ steps.app-token.outputs.token }}
           base: master
           branch: changelog/${{ github.event.release.tag_name }}
           delete-branch: true
@@ -69,7 +85,7 @@ jobs:
       - name: Enable auto-merge
         if: steps.cpr.outputs.pull-request-operation == 'created'
         env:
-          GH_TOKEN: ${{ secrets.CHANGELOG_TOKEN || github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         # Best-effort: if "Allow auto-merge" is off, don't fail the run — the PR
         # stays open for a one-click manual merge.
         run: |
